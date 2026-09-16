@@ -21,19 +21,46 @@ const CORS: Record<string, string> = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-/** 每 IP 每日限流(内存版;边缘实例重启/多实例会各自计数,属于尽力而为) */
+/** 限流(内存计数,尽力而为):每 IP 每日上限 + 每 IP 每小时突发上限 + 全站每日总额 */
 const DAILY_LIMIT = 12
-const hits = new Map<string, { day: string; n: number }>()
-function overLimit(ip: string): boolean {
-  const day = new Date().toISOString().slice(0, 10)
-  const rec = hits.get(ip)
-  if (!rec || rec.day !== day) {
-    if (hits.size > 5000) hits.clear()
-    hits.set(ip, { day, n: 1 })
-    return false
+const HOURLY_BURST = 5
+const GLOBAL_DAILY = 300
+const dayHits = new Map<string, { day: string; n: number }>()
+const hourHits = new Map<string, { hour: string; n: number }>()
+const globalCount = { day: '', n: 0 }
+
+function overLimit(ip: string): string | null {
+  const now = new Date()
+  const day = now.toISOString().slice(0, 10)
+  const hour = day + 'T' + String(now.getUTCHours()).padStart(2, '0')
+
+  if (globalCount.day !== day) {
+    globalCount.day = day
+    globalCount.n = 0
   }
-  rec.n += 1
-  return rec.n > DAILY_LIMIT
+  globalCount.n += 1
+  if (globalCount.n > GLOBAL_DAILY)
+    return '今日站内免费额度已全部用完,明天再来;或在「设置」切换为自定义接口。'
+
+  const d = dayHits.get(ip)
+  if (!d || d.day !== day) {
+    if (dayHits.size > 5000) dayHits.clear()
+    dayHits.set(ip, { day, n: 1 })
+  } else {
+    d.n += 1
+    if (d.n > DAILY_LIMIT)
+      return '今日免费体验次数已用完(每 IP 每日 12 次)。可以在「设置」里切换为「自定义接口」,填入自己的 Key 后无次数限制。'
+  }
+
+  const h = hourHits.get(ip)
+  if (!h || h.hour !== hour) {
+    if (hourHits.size > 5000) hourHits.clear()
+    hourHits.set(ip, { hour, n: 1 })
+  } else {
+    h.n += 1
+    if (h.n > HOURLY_BURST) return '操作太密集了,休息几分钟再试;生成本来也需要一点等待。'
+  }
+  return null
 }
 
 function json(obj: unknown, status: number): Response {
@@ -91,12 +118,8 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const ip = (req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim()
-  if (overLimit(ip)) {
-    return json(
-      { error: '今日免费体验次数已用完(每 IP 每日 12 次)。可以在「设置」里切换为「自定义接口」,填入自己的 Key 后无次数限制。' },
-      429,
-    )
-  }
+  const limitMsg = overLimit(ip)
+  if (limitMsg) return json({ error: limitMsg }, 429)
 
   const messages = validMessages(body.messages)
   if (!messages) return json({ error: 'messages 参数无效' }, 400)

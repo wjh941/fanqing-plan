@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { CalendarCheck, Check, Plus, Trash2 } from 'lucide-react'
+import { CalendarCheck, CalendarDays, Check, Download, Plus, Trash2 } from 'lucide-react'
 import type { CheckItem, CheckRecord } from '../lib/types'
+import { dateItems, downloadIcs, fmtDateCN } from '../lib/ics'
 import { cn, fmtDateTime, parseCount } from '../lib/utils'
 import { Badge, Button, Card, Input, useToast } from './ui'
 
@@ -14,6 +15,9 @@ const WEEK_GROUPS: Array<{ w: number; label: string }> = [
 export function CheckinCard({
   items,
   records,
+  startDate,
+  planTitle,
+  onStartDate,
   onToggle,
   onSaveStats,
   onAdd,
@@ -21,6 +25,10 @@ export function CheckinCard({
 }: {
   items: CheckItem[]
   records: Record<string, CheckRecord>
+  /** 返青开始日(YYYY-MM-DD);不传则默认今天 */
+  startDate?: string
+  planTitle?: string
+  onStartDate?: (d: string) => void
   onToggle: (id: string, done: boolean) => void
   onSaveStats: (id: string, stats: CheckRecord['stats']) => void
   onAdd: (title: string) => void
@@ -29,6 +37,13 @@ export function CheckinCard({
   const toast = useToast()
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+
+  const effectiveStart = startDate || new Date().toISOString().slice(0, 10)
+  const dated = useMemo(() => {
+    const map = new Map<string, string | null>()
+    for (const d of dateItems(items, effectiveStart)) map.set(d.item.id, d.date)
+    return map
+  }, [items, effectiveStart])
 
   const doneCount = items.filter((i) => records[i.id]?.done).length
   const progress = items.length > 0 ? Math.round((doneCount / items.length) * 100) : 0
@@ -96,6 +111,31 @@ export function CheckinCard({
         />
       </div>
 
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-stone-50 px-3 py-2.5">
+        <label className="flex items-center gap-1.5 text-xs text-stone-500">
+          <CalendarDays className="h-3.5 w-3.5" />
+          返青开始日
+          <input
+            type="date"
+            className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs text-stone-700"
+            value={effectiveStart}
+            onChange={(e) => onStartDate?.(e.target.value)}
+          />
+        </label>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="ml-auto"
+          onClick={() => {
+            downloadIcs(items, effectiveStart, planTitle || '重启方案')
+            toast('success', '日历文件已下载,导入手机日历即可按天提醒')
+          }}
+        >
+          <Download className="h-4 w-4" />
+          导出日历(.ics)
+        </Button>
+      </div>
+
       {trend && (
         <p
           className={cn(
@@ -115,9 +155,21 @@ export function CheckinCard({
         {WEEK_GROUPS.map(({ w, label }) => {
           const group = items.filter((i) => i.week === w)
           if (group.length === 0) return null
+          const weekDates = group
+            .map((i) => dated.get(i.id))
+            .filter((d): d is string => Boolean(d))
+          const range =
+            weekDates.length > 0
+              ? w === 0
+                ? ''
+                : ` · ${fmtDateCN(weekDates[0])}${weekDates.length > 1 ? '~' + fmtDateCN(weekDates[weekDates.length - 1]) : ''}`
+              : ''
           return (
             <div key={w}>
-              <p className="mb-2 text-xs font-semibold text-stone-500">{label}</p>
+              <p className="mb-2 text-xs font-semibold text-stone-500">
+                {label}
+                {range}
+              </p>
               <div className="space-y-2">
                 {group.map((item) => {
                   const rec = records[item.id]
@@ -148,6 +200,12 @@ export function CheckinCard({
                             {item.title}
                           </p>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-400">
+                            {dated.get(item.id) && (
+                              <span className="inline-flex items-center gap-1 font-medium text-stone-500">
+                                <CalendarDays className="h-3 w-3" />
+                                {fmtDateCN(dated.get(item.id) as string)}
+                              </span>
+                            )}
                             {item.when && <span>{item.when}</span>}
                             <Badge tone={item.kind.includes('测试') ? 'amber' : 'green'}>
                               {item.kind.includes('测试') ? '测试内容' : '巩固标签'}
@@ -221,7 +279,7 @@ export function CheckinCard({
           </button>
         )}
         <p className="mt-2 text-[11px] leading-relaxed text-stone-300">
-          数据只存在本机;播放/赞藏填个大概就行,复盘看的是趋势,不是比大小。
+          打卡数据只存本机;播放/赞藏填个大概就行,复盘看的是趋势,不是比大小。
         </p>
       </div>
     </Card>

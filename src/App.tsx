@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { History, Settings, Sprout } from 'lucide-react'
+import { History, Loader2, Settings, Sprout } from 'lucide-react'
 import { isManaged } from './lib/ai'
 import { AccountForm } from './components/AccountForm'
 import { HistoryDrawer } from './components/HistoryDrawer'
 import { ResumeBanner } from './components/ResumeBanner'
 import { ReportView } from './components/ReportView'
 import { SettingsDialog } from './components/SettingsDialog'
-import { Badge, Button, Card, ToastProvider, useToast } from './components/ui'
+import { Badge, Button, Card, Dialog, Markdown, ToastProvider, useToast } from './components/ui'
 import { streamChat } from './lib/ai'
+import { copyText } from './lib/export'
 import { DEMO_FORM, DEMO_REPORT } from './lib/demo'
 import { extractSchedule, replaceModule } from './lib/modules'
-import { buildMessages, buildRefineMessages } from './lib/prompt'
+import { buildMessages, buildQuickMessages, buildRefineMessages } from './lib/prompt'
 import {
   deletePlan,
   isOnboarded,
@@ -18,6 +19,7 @@ import {
   loadChecklist,
   loadConfig,
   loadDraft,
+  listPlans as loadPlans,
   saveChecklist,
   saveConfig,
   saveDraft,
@@ -85,6 +87,7 @@ function Shell() {
   const [savedId, setSavedId] = useState<string | null>(null)
   const [checkItems, setCheckItems] = useState<CheckItem[]>([])
   const [checkRecords, setCheckRecords] = useState<Record<string, CheckRecord>>({})
+  const [checkStartDate, setCheckStartDate] = useState<string | undefined>(undefined)
   const [welcomeOpen, setWelcomeOpen] = useState(() => !isOnboarded())
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
@@ -135,8 +138,9 @@ function Shell() {
     planId: string | null,
     items: CheckItem[],
     records: Record<string, CheckRecord>,
+    startDate?: string,
   ) {
-    if (planId) saveChecklist(planId, { items, records })
+    if (planId) saveChecklist(planId, { items, records, ...(startDate ? { startDate } : {}) })
   }
 
   async function runGeneration(f: AccountFormData, isDemo: boolean) {
@@ -171,6 +175,7 @@ function Shell() {
         persistPlan(f, cleaned, isDemo, schedule)
         setCheckItems(schedule)
         setCheckRecords({})
+        setCheckStartDate(undefined)
         toast('success', isDemo ? '演示方案已生成(内置示例数据)' : '方案生成完成,已保存到「历史方案」')
       }
     } catch (e) {
@@ -192,6 +197,31 @@ function Shell() {
   }
 
   const handleDemo = () => void runGeneration(structuredClone(DEMO_FORM), true)
+
+  /* ---------- 快速诊断:作品不足 3 条时的轻量出口 ---------- */
+  const [quickOpen, setQuickOpen] = useState(false)
+  const [quickText, setQuickText] = useState('')
+  const [quickBusy, setQuickBusy] = useState(false)
+
+  async function runQuick(f: AccountFormData) {
+    if (quickBusy || streaming) return
+    setQuickOpen(true)
+    setQuickText('')
+    setQuickBusy(true)
+    const ac = new AbortController()
+    abortRef.current = ac
+    try {
+      const full = await streamChat(config, buildQuickMessages(f), (d) => setQuickText((r) => r + d), ac.signal)
+      if (!ac.signal.aborted && full.trim().length < 50) {
+        setQuickText('AI 返回的内容过短,请稍后重试;或到「设置」里检查配置。')
+      }
+    } catch (e) {
+      setQuickText(e instanceof Error ? e.message : String(e))
+    } finally {
+      setQuickBusy(false)
+      abortRef.current = null
+    }
+  }
 
   const handleStop = () => abortRef.current?.abort()
 
@@ -249,6 +279,17 @@ function Shell() {
     }
     setCheckRecords(next)
     persistChecklist(savedId, checkItems, next)
+    // 温和的备份提醒:完成第 2 个动作时提示一次(只提示一次,不追问)
+    const doneCount = checkItems.filter((i) => next[i.id]?.done).length
+    if (doneCount >= 2 && !localStorage.getItem('rp.backupHint.v1')) {
+      localStorage.setItem('rp.backupHint.v1', String(Date.now()))
+      toast('info', '你已完成 2 个重启动作。建议到「历史方案」导出一份备份,换设备也不会丢。')
+    }
+  }
+
+  const changeCheckStartDate = (d: string) => {
+    setCheckStartDate(d)
+    persistChecklist(savedId, checkItems, checkRecords, d)
   }
 
   const saveStats = (id: string, stats: CheckRecord['stats']) => {
@@ -295,6 +336,7 @@ function Shell() {
     const saved = loadChecklist(p.id)
     setCheckItems(saved.items.length > 0 ? saved.items : (p.schedule ?? []))
     setCheckRecords(saved.records)
+    setCheckStartDate(saved.startDate)
     setView('report')
     setHistoryOpen(false)
     window.scrollTo({ top: 0 })
@@ -462,6 +504,7 @@ function Shell() {
               hasKey={canGenerate}
               aiConfig={config}
               onGenerate={handleGenerate}
+              onQuick={(f) => void runQuick(f)}
               onDemo={handleDemo}
               onOpenSettings={() => setSettingsOpen(true)}
             />
@@ -478,6 +521,8 @@ function Shell() {
               refining={refining}
               checkItems={checkItems}
               checkRecords={checkRecords}
+              checkStartDate={checkStartDate}
+              onChangeCheckStartDate={changeCheckStartDate}
               onRefine={(n, instruction) => void handleRefine(n, instruction)}
               onStop={handleStop}
               onBack={backToForm}
@@ -495,7 +540,7 @@ function Shell() {
       <footer className="no-print border-t border-stone-200/60 bg-white/50 px-4 py-6 text-center sm:px-6">
         <p className="text-xs leading-relaxed text-stone-400">{DISCLAIMER}</p>
         <p className="mt-1.5 text-xs text-stone-300">
-          账号数据仅保存在本设备浏览器,不上传任何服务器 · 内容策略辅助工具,不是流量外挂
+          方案与打卡记录保存在你的浏览器本机;点生成时,必要表单内容会经站内代理转发给模型服务商 · 内容策略辅助工具,不是流量外挂
         </p>
         <button
           type="button"
@@ -516,6 +561,45 @@ function Shell() {
           toast('success', cfg.apiKey ? '设置已保存,可以开始生成了' : '设置已保存(未填 Key,可先体验演示)')
         }}
       />
+      {/* 快速诊断弹窗 */}
+      <Dialog
+        open={quickOpen}
+        onClose={() => {
+          if (!quickBusy) setQuickOpen(false)
+        }}
+        title="快速诊断"
+        subtitle="仅基于 1~2 条作品的初步判断,补齐作品可生成完整方案"
+      >
+        {quickText ? (
+          <div className="markdown-body text-[13.5px]">
+            <Markdown text={quickText} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 py-8 text-sm text-stone-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            正在根据你的作品做初判,大约需要一分钟…
+          </div>
+        )}
+        <div className="mt-4 flex gap-2">
+          <Button
+            variant="outline"
+            disabled={!quickText || quickBusy}
+            onClick={async () => {
+              try {
+                await copyText(quickText)
+                toast('success', '诊断已复制')
+              } catch {
+                toast('error', '复制失败,请手动长按选择文本')
+              }
+            }}
+          >
+            复制全文
+          </Button>
+          <Button variant="ghost" disabled={quickBusy} onClick={() => setQuickOpen(false)}>
+            关闭
+          </Button>
+        </div>
+      </Dialog>
       <HistoryDrawer
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
@@ -525,6 +609,10 @@ function Shell() {
           setPlans(deletePlan(id))
           if (savedId === id) setSavedId(null)
           toast('success', '已删除')
+        }}
+        onRestored={() => {
+          setPlans(loadPlans())
+          setForm(loadDraft())
         }}
       />
       <WelcomeDialog

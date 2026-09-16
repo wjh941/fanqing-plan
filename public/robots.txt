@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://wjh941.github.io/fanqing-plan/sitemap.xml

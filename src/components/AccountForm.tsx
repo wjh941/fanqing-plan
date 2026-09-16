@@ -46,6 +46,7 @@ export function AccountForm({
   hasKey,
   aiConfig,
   onGenerate,
+  onQuick,
   onDemo,
   onOpenSettings,
 }: {
@@ -54,6 +55,7 @@ export function AccountForm({
   hasKey: boolean
   aiConfig: AIConfig
   onGenerate: (form: AccountFormData) => void
+  onQuick?: (form: AccountFormData) => void
   onDemo: () => void
   onOpenSettings: () => void
 }) {
@@ -249,7 +251,7 @@ export function AccountForm({
           ))}
         </div>
         <p className="mt-2 text-right text-[11px] text-stone-300">
-          3 步 · 约 3 分钟 · 数据只保存在本机
+          3 步 · 约 3 分钟 · 方案与打卡只存本机
         </p>
       </div>
 
@@ -385,6 +387,23 @@ export function AccountForm({
                   </Badge>
                   <span className="text-xs text-stone-400">优先填爆过的 · 只有标题必填,数据填个大概就行</span>
                 </div>
+
+                {/* 作品只有 1~2 条时的轻量出口 */}
+                {filledWorks.length > 0 && filledWorks.length < 3 && onQuick && (
+                  <button
+                    type="button"
+                    onClick={() => onQuick(form)}
+                    className="flex w-full items-start gap-2 rounded-xl border border-dashed border-stone-300 bg-stone-50/60 px-3.5 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50/40"
+                  >
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                    <span>
+                      <span className="text-[13px] font-medium text-stone-700">作品凑不够 3 条?先拿一份快速诊断</span>
+                      <span className="mt-0.5 block text-xs text-stone-400">
+                        只用现有作品给初步判断:有效方向 + 第一周建议 + 今天能做的一件小事,约 1 分钟
+                      </span>
+                    </span>
+                  </button>
+                )}
 
                 {/* 粘贴导入(主路径) */}
                 <div className="rounded-2xl border border-brand-100 bg-gradient-to-b from-brand-50/70 to-white p-4">
@@ -625,7 +644,7 @@ export function AccountForm({
                     {form.wantsMonetize ? ' · 含变现模块' : ''}
                   </p>
                   <p className="mt-1 text-xs">
-                    账号数据仅在你的浏览器内处理,方案生成后保存在本机,可随时删除。
+                    账号信息与方案保存在你的浏览器本机;点「生成」时,为了让 AI 生成方案,必要表单内容会经站内代理转发给模型服务商。本工具不建账号、不保存你的历史方案。
                   </p>
                 </div>
 

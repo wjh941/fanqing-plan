@@ -89,6 +89,8 @@ export function ReportView({
   refining,
   checkItems,
   checkRecords,
+  checkStartDate,
+  onChangeCheckStartDate,
   onRefine,
   onStop,
   onBack,
@@ -107,6 +109,8 @@ export function ReportView({
   refining: { n: number; buffer: string } | null
   checkItems: CheckItem[]
   checkRecords: Record<string, CheckRecord>
+  checkStartDate?: string
+  onChangeCheckStartDate?: (d: string) => void
   onRefine: (n: number, instruction: string) => void
   onStop: () => void
   onBack: () => void
@@ -300,6 +304,9 @@ export function ReportView({
         <CheckinCard
           items={checkItems}
           records={checkRecords}
+          startDate={checkStartDate}
+          planTitle={form.niche ? `${form.niche}重启方案` : '重启方案'}
+          onStartDate={onChangeCheckStartDate}
           onToggle={onToggleCheck}
           onSaveStats={onSaveStats}
           onAdd={onAddCheckItem}

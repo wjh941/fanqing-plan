@@ -63,6 +63,8 @@ export interface CheckRecord {
 export interface ChecklistData {
   items: CheckItem[]
   records: Record<string, CheckRecord>
+  /** 返青开始日(YYYY-MM-DD),用于把排期落到具体日期 */
+  startDate?: string
 }
 
 export interface ChatMessage {

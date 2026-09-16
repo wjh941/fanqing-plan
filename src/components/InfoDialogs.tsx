@@ -57,8 +57,8 @@ export function WelcomeDialog({
         />
         <InfoRow
           icon={<Database className="h-4 w-4" />}
-          title="数据只存在本机"
-          desc="账号信息与方案保存在这台设备的浏览器里,不上传任何服务器"
+          title="方案与打卡只存本机"
+          desc="保存在这台设备的浏览器里;点生成时,必要表单内容会经站内代理转发给模型服务商"
         />
         <InfoRow
           icon={<ShieldCheck className="h-4 w-4" />}
@@ -93,17 +93,24 @@ export function PrivacyDialog({
     <Dialog open={open} onClose={onClose} title="隐私与免责声明">
       <div className="space-y-4 text-[13px] leading-relaxed text-stone-600">
         <section>
-          <h3 className="font-semibold text-stone-800">数据存在哪里?</h3>
+          <h3 className="font-semibold text-stone-800">一、什么保存在本机?</h3>
           <p className="mt-1">
-            你填写的账号信息、生成的方案、打卡记录全部只保存在本设备的浏览器(localStorage)中。
-            本工具没有账号系统、没有自己的服务器,不会上传你的任何数据;清除浏览器数据或在「历史方案」里删除即彻底消失。
+            你填写的账号信息、生成的方案、打卡记录,全部只保存在本设备的浏览器(localStorage)中。
+            本工具没有账号系统,不会保存你的历史方案;清除浏览器数据或在「历史方案」里删除即彻底消失。
           </p>
         </section>
         <section>
-          <h3 className="font-semibold text-stone-800">AI 请求发到哪里?</h3>
+          <h3 className="font-semibold text-stone-800">二、点「生成」时会发生什么?</h3>
           <p className="mt-1">
-            点击生成时,你的浏览器会把表单内容直接发送到你在「设置」里填写的 AI
-            接口(默认 DeepSeek 官方接口)用于生成方案,不经过任何第三方中转。
+            为了让 AI 生成方案,必要的表单内容(赛道人设、断更情况、历史作品与数据)会通过站内代理转发给模型服务商处理。
+            代理只为转发请求而存在,不建立账号、不存储你的方案;转发内容不用于其他用途。
+          </p>
+        </section>
+        <section>
+          <h3 className="font-semibold text-stone-800">三、如果你使用自己的接口(可选)</h3>
+          <p className="mt-1">
+            在「设置」切换为「自定义接口」后,生成请求由你的浏览器直连你填写的 AI 接口,
+            Key 只保存在本机,不经过站内代理。
           </p>
         </section>
         <section>
