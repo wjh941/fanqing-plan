@@ -61,27 +61,13 @@ npm run dev
 
 打开 http://localhost:5199 (同一局域网手机可访问启动时打印的 Network 地址)。
 
-## 配置 AI(支持任意 OpenAI 兼容接口)
+## 配置 AI(默认免配置,开箱即用)
 
-浏览器端直连,已验证:DeepSeek 官方接口、sub2api 类中转(Chat Completions 协议)均可直连(CORS 放行)。
+**托管生成(默认)**:访客无需注册、无需 Key,直接生成。由 `api/generate.ts`(Vercel Edge Function)代理 AI 接口——Key 只存在服务端环境变量(`RELAY_BASE_URL` / `RELAY_API_KEY` / `RELAY_MODEL`),前端产物不含任何密钥。内置每 IP 每日 12 次限流与请求体校验。
 
-**方式一:本地默认配置(推荐自用)**
+**自定义接口(高级)**:「设置」→「生成方式」→「自定义接口」,填入任意 OpenAI 兼容接口的 Key(DeepSeek 或中转,中转地址一般要带 `/v1`),无次数限制,浏览器直连。本地开发可在 `.env.local` 里预填 `VITE_AI_*` 作为默认值。
 
-在项目根目录建 `.env.local`(已被 .gitignore 排除,不会提交):
-
-```ini
-VITE_AI_BASE_URL=https://api.deepseek.com        # 或任意中转,如 https://xxx/v1
-VITE_AI_API_KEY=sk-xxxx
-VITE_AI_MODEL=deepseek-chat                      # 中转模型名,如 gpt-5.5
-```
-
-重启 `npm run dev` 后,应用自动带上这套默认配置;「设置」里仍可随时覆盖(存浏览器本地)。
-
-**方式二:页面里手动填**
-
-点右上角「设置」,粘贴 Key,「测试连接」通过即可。不填 Key 可体验内置演示数据。
-
-> 注意:① 中转地址一般要带 `/v1`;② 推理类模型(gpt-5 系等)生成前会有一段不可见的"思考时间",界面显示骨架屏属正常;③ 公开部署前清空 `.env.local`,避免 Key 随构建产物泄露。
+**部署拓扑**:Vercel 部署自带 `/api` 函数,托管走同源;GitHub Pages 为纯静态,构建时注入 `VITE_MANAGED_API_BASE` 指向 Vercel 函数(该线路依赖 vercel.app 可达性,大陆部分手机网络可能不稳)。推理类模型生成前会有一段不可见的"思考时间",骨架屏属正常。
 
 ## 打包部署
 
