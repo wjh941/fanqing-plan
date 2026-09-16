@@ -633,7 +633,7 @@ export function AccountForm({
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <p className="flex items-start gap-2 text-[13px] leading-relaxed text-amber-800">
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      还没有配置 AI API Key。配置后可以生成「专属你的方案」;也可以先看演示数据,体验完整流程。
+                      生成服务暂不可用。可在「设置」里检查托管服务状态,或配置自己的 API Key;也可以先看演示数据,体验完整流程。
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={onOpenSettings}>

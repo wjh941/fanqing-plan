@@ -1,5 +1,31 @@
 import type { AIConfig, ChatMessage } from './types'
 
+/**
+ * 托管生成服务地址(Key 在服务端,用户零配置)。
+ * 优先同源:Vercel / EdgeOne 等自带 /api 函数的部署用相对路径(无跨域、不受域名污染影响);
+ * 纯静态托管(如 GitHub Pages)通过构建环境变量 VITE_MANAGED_API_BASE 指向带函数的部署。
+ */
+export const MANAGED_API = (
+  (import.meta.env.VITE_MANAGED_API_BASE as string | undefined) || ''
+).replace(/\/+$/, '')
+
+export function isManaged(cfg: AIConfig): boolean {
+  return cfg.mode !== 'own'
+}
+
+/** 生成请求的目标地址:托管模式走代理,自定义模式直连用户接口 */
+export function generateEndpoint(cfg: AIConfig): string {
+  return isManaged(cfg) ? `${MANAGED_API}/api/generate` : endpoint(cfg.baseUrl)
+}
+
+export function apiHeaders(cfg: AIConfig): Record<string, string> {
+  if (isManaged(cfg)) return { 'Content-Type': 'application/json' }
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${cfg.apiKey.trim()}`,
+  }
+}
+
 export class AIError extends Error {
   status?: number
   constructor(message: string, status?: number) {
@@ -12,15 +38,7 @@ export class AIError extends Error {
 export function endpoint(baseUrl: string): string {
   const base = baseUrl.trim().replace(/\/+$/, '')
   // 兼容 https://api.deepseek.com 与 https://xxx/v1 两种填法
-  if (/\/v1$/.test(base)) return `${base}/chat/completions`
   return `${base}/chat/completions`
-}
-
-export function apiHeaders(cfg: AIConfig): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${cfg.apiKey.trim()}`,
-  }
 }
 
 function friendlyError(status: number, raw: string): string {
@@ -33,7 +51,7 @@ function friendlyError(status: number, raw: string): string {
     case 422:
       return '请求参数有误,请检查模型名称是否填写正确。(422)'
     case 429:
-      return '请求过于频繁或额度受限,请稍等片刻再试。(429)'
+      return '今日免费体验次数已用完。可以在「设置」里切换为「自定义接口」,填入自己的 Key 后无次数限制。(429)'
     default:
       return `请求失败(${status}):${detail || '请检查接口地址与网络'}`
   }
@@ -51,7 +69,7 @@ export async function streamChat(
 ): Promise<string> {
   let res: Response
   try {
-    res = await fetch(endpoint(cfg.baseUrl), {
+    res = await fetch(generateEndpoint(cfg), {
       method: 'POST',
       headers: apiHeaders(cfg),
       body: JSON.stringify({
@@ -129,12 +147,31 @@ export async function streamChat(
   return full
 }
 
-/** 设置面板里的「测试连接」:发一个最小请求验证 Key / 地址 / 模型 */
+/** 设置面板里的「测试连接」:验证生成服务是否可用(托管模式 ping 代理,自定义模式直连) */
 export async function testConnection(
   cfg: AIConfig,
 ): Promise<{ ok: boolean; message: string; ms: number }> {
   const start = performance.now()
   try {
+    if (isManaged(cfg)) {
+      const res = await fetch(`${MANAGED_API}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ping: true }),
+      })
+      const ms = Math.round(performance.now() - start)
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; configured?: boolean }
+      if (res.ok && j.ok) {
+        return {
+          ok: true,
+          message: j.configured
+            ? `托管服务可用(${ms}ms),无需任何配置,直接开始吧`
+            : `托管服务在线,但服务端生成配置缺失,请联系维护者`,
+          ms,
+        }
+      }
+      return { ok: false, message: `托管服务异常(${res.status}),可切换为「自定义接口」继续使用`, ms }
+    }
     const res = await fetch(endpoint(cfg.baseUrl), {
       method: 'POST',
       headers: apiHeaders(cfg),

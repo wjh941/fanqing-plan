@@ -1,4 +1,4 @@
-import { apiHeaders, AIError, endpoint } from './ai'
+import { apiHeaders, AIError, generateEndpoint } from './ai'
 import type { AIConfig } from './types'
 import type { ParsedWork } from './parser'
 
@@ -33,7 +33,7 @@ export async function extractWorksFromImage(
 ): Promise<ParsedWork[]> {
   let res: Response
   try {
-    res = await fetch(endpoint(cfg.baseUrl), {
+    res = await fetch(generateEndpoint(cfg), {
       method: 'POST',
       headers: apiHeaders(cfg),
       body: JSON.stringify({
@@ -47,6 +47,7 @@ export async function extractWorksFromImage(
             ],
           },
         ],
+        stream: false,
         max_tokens: 2000,
       }),
     })

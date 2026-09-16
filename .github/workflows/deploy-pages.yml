@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAGES: '1'
+      VITE_MANAGED_API_BASE: 'https://fanqing-plan.vercel.app'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -23,6 +23,8 @@ export interface AccountForm {
 }
 
 export interface AIConfig {
+  /** managed = 免配置托管生成(服务端代理);own = 用户自定义接口 */
+  mode?: 'managed' | 'own'
   baseUrl: string
   apiKey: string
   model: string

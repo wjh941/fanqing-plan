@@ -67,14 +67,14 @@ export function WelcomeDialog({
         />
       </div>
       <div className="mt-6 space-y-2 pb-1">
-        <Button className="w-full" onClick={onDemo}>
-          先看演示效果(无需 Key)
+        <Button className="w-full" onClick={onClose}>
+          直接开始填写(打开即用,无需配置)
         </Button>
-        <Button variant="outline" className="w-full" onClick={onSettings}>
-          配置 API Key,生成专属方案
+        <Button variant="outline" className="w-full" onClick={onDemo}>
+          先看演示效果,感受输出质量
         </Button>
-        <Button variant="ghost" className="w-full" onClick={onClose}>
-          直接开始填写
+        <Button variant="ghost" className="w-full" onClick={onSettings}>
+          高级设置(用自己的 API 接口)
         </Button>
       </div>
     </Dialog>

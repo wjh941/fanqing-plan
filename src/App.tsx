@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { History, Settings, Sprout } from 'lucide-react'
+import { isManaged } from './lib/ai'
 import { AccountForm } from './components/AccountForm'
 import { HistoryDrawer } from './components/HistoryDrawer'
 import { ResumeBanner } from './components/ResumeBanner'
@@ -88,7 +89,8 @@ function Shell() {
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
-  const hasKey = config.apiKey.trim().length > 0
+  // 托管模式免配置即可生成;自定义模式才需要填 Key
+  const canGenerate = isManaged(config) || config.apiKey.trim().length > 0
 
   /* 回访唤醒:找到最近一份带打卡清单的方案 */
   const resume = useMemo(() => {
@@ -181,8 +183,8 @@ function Shell() {
   }
 
   const handleGenerate = (f: AccountFormData) => {
-    if (!hasKey) {
-      toast('info', '请先在「设置」里填 API Key,或先体验演示数据')
+    if (!canGenerate) {
+      toast('info', '自定义接口模式需要先填 API Key;或在「设置」切回托管生成')
       setSettingsOpen(true)
       return
     }
@@ -195,10 +197,10 @@ function Shell() {
 
   async function handleRefine(n: number, instruction: string) {
     if (demo) {
-      toast('info', '演示模式不支持微调,配置 API Key 后即可使用')
+      toast('info', '演示方案不支持微调;生成你自己的方案后即可使用')
       return
     }
-    if (!hasKey || streaming) return
+    if (!canGenerate || streaming) return
     const ac = new AbortController()
     abortRef.current = ac
     setRefining({ n, buffer: '' })
@@ -339,7 +341,7 @@ function Shell() {
             >
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">设置</span>
-              {!hasKey && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+              {!canGenerate && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
             </Button>
           </div>
         </div>
@@ -370,6 +372,7 @@ function Shell() {
               <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-500 sm:text-[15px]">
                 基于你自己账号的历史作品数据,生成重启诊断、低风险选题、双平台文案和渐进式排期。
                 不追热点、不承诺流量,只帮你重新开始。
+                <span className="mt-1 block text-[13px] font-medium text-brand-600">打开即用,无需注册和配置。</span>
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {HERO_POINTS.map((p) => (
@@ -399,7 +402,7 @@ function Shell() {
                   </ul>
                 </Card>
                 <Card className="border-brand-100 bg-brand-50/40 p-4 print-plain">
-                  <p className="text-[13px] font-semibold text-brand-700">用「重启计划」</p>
+                  <p className="text-[13px] font-semibold text-brand-700">用「返青计划」</p>
                   <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-stone-600">
                     <li>· 问题已替你问对:5 大模块 + 防跑偏规则内置</li>
                     <li>· 每条结论锚定你自己的历史爆款,不空谈</li>
@@ -412,10 +415,51 @@ function Shell() {
               </p>
             </section>
 
+            {/* 真实感示例场景 + 适合谁/不适合谁 */}
+            <section className="grid gap-3 pb-2 sm:grid-cols-2">
+              <Card className="p-4 print-plain">
+                <Badge tone="brand" className="mb-2">
+                  示例场景
+                </Badge>
+                <p className="text-[13px] leading-relaxed text-stone-600">
+                  一个<strong>断更 5 个月</strong>的家居博主,过去最稳的是出租屋改造。
+                  返青计划诊断出「前后对比 + 真实踩坑」仍是她的有效标签——
+                  第一周不硬拍新素材,而是<strong>复用旧内容做回访测评</strong>,第二周才逐步恢复节奏。
+                </p>
+                <button
+                  type="button"
+                  onClick={handleDemo}
+                  className="mt-2 text-xs font-medium text-brand-600 hover:underline"
+                >
+                  看这份完整示例方案 →
+                </button>
+              </Card>
+              <Card className="p-4 print-plain">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[13px] font-semibold text-emerald-700">适合你,如果</p>
+                    <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-stone-500">
+                      <li>· 断更 1 个月以上想重启</li>
+                      <li>· 有至少 3 条历史作品</li>
+                      <li>· 想低成本慢慢恢复,不追爆</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-stone-500">可能不适合,如果</p>
+                    <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-stone-400">
+                      <li>· 追求速涨粉 / 快速带货</li>
+                      <li>· 全新账号没有任何作品</li>
+                      <li>· 期望保证流量效果(我们不会)</li>
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+            </section>
+
             <AccountForm
               initial={form}
               generating={streaming}
-              hasKey={hasKey}
+              hasKey={canGenerate}
               aiConfig={config}
               onGenerate={handleGenerate}
               onDemo={handleDemo}

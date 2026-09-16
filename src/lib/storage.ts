@@ -28,6 +28,7 @@ function writeJSON(key: string, value: unknown): void {
 
 /** 默认接口可被 .env.local 覆盖(VITE_AI_BASE_URL / VITE_AI_API_KEY / VITE_AI_MODEL) */
 export const DEFAULT_CONFIG: AIConfig = {
+  mode: 'managed',
   baseUrl: (import.meta.env.VITE_AI_BASE_URL as string | undefined)?.trim() || 'https://api.deepseek.com',
   apiKey: (import.meta.env.VITE_AI_API_KEY as string | undefined)?.trim() || '',
   model: (import.meta.env.VITE_AI_MODEL as string | undefined)?.trim() || 'deepseek-chat',
@@ -35,8 +36,9 @@ export const DEFAULT_CONFIG: AIConfig = {
 
 export function loadConfig(): AIConfig {
   const saved = readJSON<Partial<AIConfig>>(KEY_CONFIG)
-  // 空值回退到默认(含 env 注入的本地默认)
+  // 空值回退到默认(含 env 注入的本地默认);模式默认托管(免 Key)
   return {
+    mode: saved?.mode === 'own' ? 'own' : 'managed',
     baseUrl: saved?.baseUrl?.trim() || DEFAULT_CONFIG.baseUrl,
     apiKey: saved?.apiKey?.trim() || DEFAULT_CONFIG.apiKey,
     model: saved?.model?.trim() || DEFAULT_CONFIG.model,
