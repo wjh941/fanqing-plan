@@ -18,24 +18,55 @@
   <body>
     <div id="root"></div>
     <script>
-      // 兼容性兜底:任何加载/运行错误直接显示在屏幕上,方便老设备排查
-      window.addEventListener(
-        'error',
-        function (e) {
+      // 兼容性兜底:加载/运行错误直接显示在屏幕上,并附带"页面 + JS 包指纹",便于远程诊断
+      ;(function () {
+        function show(msg) {
           var el = document.getElementById('boot-error')
           if (!el) {
             el = document.createElement('div')
             el.id = 'boot-error'
             el.style.cssText =
               'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#fee2e2;color:#991b1b;font:12px/1.6 sans-serif;padding:8px 10px;white-space:pre-wrap;word-break:break-all'
-            if (document.body) document.body.appendChild(el)
+            ;(document.body || document.documentElement).appendChild(el)
           }
-          var src = e.target && (e.target.src || e.target.href)
+          if (el.getAttribute('data-seen') === '1') return
+          el.setAttribute('data-seen', '1')
+          var bundle = '?'
+          try {
+            var s = document.querySelector('script[src*="assets"]')
+            if (s) bundle = s.getAttribute('src')
+          } catch (e2) {}
           el.textContent =
-            '加载出错,请截图发给开发者:' + (e.message || src || 'unknown')
-        },
-        true,
-      )
+            '加载出错,请整屏截图发给开发者\n错误:' +
+            msg +
+            '\n页面:' +
+            location.pathname +
+            location.search +
+            '\n包:' +
+            bundle +
+            '\n时间:' +
+            new Date().toLocaleTimeString()
+        }
+        window.__showBootError = show
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target
+            if (t && t !== window && (t.src || t.href)) {
+              show('资源加载失败:' + (t.src || t.href))
+            } else {
+              show((e.message || 'unknown') + (e.lineno ? ' @L' + e.lineno : ''))
+            }
+          },
+          true,
+        )
+        setTimeout(function () {
+          var root = document.getElementById('root')
+          if (root && root.children.length === 0) {
+            show('页面 5 秒未加载完成。多半是缓存了旧版本:请下拉刷新重试,或在浏览器菜单里选「在浏览器打开/清除缓存」。')
+          }
+        }, 5000)
+      })()
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
