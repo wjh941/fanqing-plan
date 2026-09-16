@@ -4,6 +4,9 @@ import { isManaged } from './lib/ai'
 import { AccountForm } from './components/AccountForm'
 import { HistoryDrawer } from './components/HistoryDrawer'
 import { ResumeBanner } from './components/ResumeBanner'
+import { FirstPostMode } from './components/FirstPostMode'
+import { downloadMilestoneImage, fmtDateCNms, journeyStats } from './lib/journey'
+import type { JourneyStats } from './lib/journey'
 import { ReportView } from './components/ReportView'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Badge, Button, Card, Dialog, Markdown, ToastProvider, useToast } from './components/ui'
@@ -76,7 +79,8 @@ function Shell() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [plans, setPlans] = useState<SavedPlan[]>(() => listPlans())
   const [form, setForm] = useState<AccountFormData>(() => loadDraft())
-  const [view, setView] = useState<'form' | 'report'>('form')
+  const [view, setView] = useState<'form' | 'report' | 'first'>('form')
+  const [journey, setJourney] = useState<JourneyStats>(() => journeyStats())
   const [currentForm, setCurrentForm] = useState<AccountFormData>(DEMO_FORM)
   const [createdAt, setCreatedAt] = useState<number>(() => Date.now())
   const [report, setReport] = useState('')
@@ -112,6 +116,11 @@ function Shell() {
     const t = window.setTimeout(() => saveDraft(form), 400)
     return () => window.clearTimeout(t)
   }, [form])
+
+  /* 回到首页时刷新陪跑数据(累计完成/连续天数/返青第 N 天) */
+  useEffect(() => {
+    if (view === 'form') setJourney(journeyStats())
+  }, [view])
 
   function persistPlan(
     f: AccountFormData,
@@ -390,7 +399,16 @@ function Shell() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
-        {view === 'form' ? (
+        {view === 'first' ? (
+          <FirstPostMode
+            form={form}
+            onBack={() => setView('form')}
+            onFullPlan={() => {
+              setView('form')
+              window.scrollTo({ top: 0 })
+            }}
+          />
+        ) : view === 'form' ? (
           <>
             {resume && (
               <div className="pt-5">
@@ -416,6 +434,9 @@ function Shell() {
                 不追热点、不承诺流量,只帮你重新开始。
                 <span className="mt-1 block text-[13px] font-medium text-brand-600">打开即用,无需注册和配置。</span>
               </p>
+              <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-relaxed text-stone-700 sm:text-base">
+                「不保证流量,只保证你不再是一个断更的人。」
+              </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {HERO_POINTS.map((p) => (
                   <Badge key={p} tone="neutral">
@@ -431,6 +452,72 @@ function Shell() {
                 没填过?先看一份示例方案,30 秒感受输出效果 →
               </button>
             </section>
+
+            {/* 返青足迹:数据随使用变厚 */}
+            {(journey.totalDone > 0 || journey.firstPost) && journey.dayN === null && (
+              <Card className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 p-4 print-plain">
+                <p className="text-[13px] font-semibold text-stone-700">🌱 你的返青足迹</p>
+                <p className="text-xs text-stone-500">
+                  累计完成 <strong className="text-brand-600">{journey.totalDone}</strong> 个重启动作
+                  {journey.streak > 0 && (
+                    <>
+                      {' '}
+                      · 连续 <strong className="text-brand-600">{journey.streak}</strong> 天
+                    </>
+                  )}
+                </p>
+              </Card>
+            )}
+            {journey.dayN !== null && journey.dayN > 30 && journey.firstPost && (
+              <Card className="mb-3 p-5 print-plain">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[15px] font-bold text-stone-900">🎉 重启完成 · 你已返青 {journey.dayN} 天</p>
+                    <p className="mt-1 text-xs leading-relaxed text-stone-500">
+                      自 {fmtDateCNms(journey.firstPost.publishedAt)} 发出第一篇起,累计完成 {journey.totalDone} 个重启动作
+                      {journey.streak > 0 ? ` · 连续 ${journey.streak} 天` : ''}。这个账号已经不是一个断更的账号了。
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      downloadMilestoneImage({
+                        dayN: journey.dayN ?? 30,
+                        niche: form.niche.trim(),
+                        dateMs: journey.firstPost!.publishedAt,
+                        done: journey.totalDone,
+                        streak: journey.streak,
+                      })
+                      toast('success', '总结卡已保存,晒出来鼓励一下和你一样停更的人')
+                    }}
+                  >
+                    保存总结卡
+                  </Button>
+                </div>
+              </Card>
+            )}
+            {journey.dayN !== null && journey.dayN <= 30 && (
+              <Card className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 p-4 print-plain">
+                <p className="text-[13px] font-semibold text-stone-700">🌱 返青第 {journey.dayN} 天</p>
+                <p className="text-xs text-stone-500">
+                  自 {fmtDateCNms(journey.firstPost!.publishedAt)} 的第一篇起,累计 {journey.totalDone} 个动作
+                  {journey.streak > 0 ? ` · 连续 ${journey.streak} 天` : ''} · 距重启满 30 天还有 {30 - journey.dayN} 天
+                </p>
+              </Card>
+            )}
+
+            {/* 首发模式入口:获客与口碑的主战场 */}
+            <Card className="mb-3 border-brand-200 bg-gradient-to-br from-brand-50/80 to-white p-5 print-plain">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-bold text-stone-900">只敢先做一件小事?→ 进入「首发模式」</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
+                    不生成方案、不用 AI,三步陪你把第一篇发出去:给旧作退休 → 挑低风险内容 → 发布打卡,全程约 5 分钟。
+                  </p>
+                </div>
+                <Button onClick={() => setView('first')}>开始首发模式</Button>
+              </div>
+            </Card>
 
             {/* 价值对比:诚实回答「为什么不用自己问 AI」 */}
             <section className="pb-2">
