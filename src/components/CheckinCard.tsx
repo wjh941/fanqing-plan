@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import { CalendarCheck, CalendarDays, Check, Download, Plus, Trash2 } from 'lucide-react'
+import { CalendarCheck, CalendarDays, Check, Download, FlaskConical, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import type { CheckItem, CheckRecord } from '../lib/types'
 import { dateItems, downloadIcs, fmtDateCN } from '../lib/ics'
 import { cn, fmtDateTime, parseCount } from '../lib/utils'
-import { Badge, Button, Card, Input, useToast } from './ui'
+import { Badge, Button, Card, Chip, Dialog, Input, useToast } from './ui'
 
 const WEEK_GROUPS: Array<{ w: number; label: string }> = [
   { w: 1, label: '第 1 周 · 测试期' },
@@ -37,6 +37,8 @@ export function CheckinCard({
   const toast = useToast()
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const [reflecting, setReflecting] = useState<CheckItem | null>(null)
+  const [ans, setAns] = useState<{ q1: string; q2: string; q3: string }>({ q1: '', q2: '', q3: '' })
 
   const effectiveStart = startDate || new Date().toISOString().slice(0, 10)
   const dated = useMemo(() => {
@@ -134,7 +136,26 @@ export function CheckinCard({
           <Download className="h-4 w-4" />
           导出日历(.ics)
         </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onAdd('降档任务:发一张图+一句话,维持账号活跃(约10分钟)')
+            toast('info', '已加入降档任务——今天只想躺着,就做这一条')
+          }}
+        >
+          <RotateCcw className="h-4 w-4" />
+          今天没状态?降档
+        </Button>
       </div>
+
+      {/* 预期管理:前 3 篇不盯数据 */}
+      {doneCount < 3 && (
+        <p className="mt-3 rounded-xl bg-amber-50/70 px-3.5 py-2.5 text-xs leading-relaxed text-amber-700">
+          先说好:重启后的前 3 篇笔记,数据差是常态——平台在重新认识你,这是流程的一部分,不是你的能力判决。
+          前 3 篇建议发布满 24 小时再回来看数据,我们只统计「你做了没有」,不评判数据好坏。
+        </p>
+      )}
 
       {trend && (
         <p
@@ -213,27 +234,42 @@ export function CheckinCard({
                             {item.difficulty && <span>难度 {item.difficulty}</span>}
                             {done && rec?.doneAt && <span>完成于 {fmtDateTime(rec.doneAt)}</span>}
                           </div>
+                          {!done && item.detail && (
+                            <p className="mt-1.5 rounded-lg bg-stone-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-stone-500">
+                              {item.detail}
+                            </p>
+                          )}
                           {done && (
-                            <div className="mt-2 grid grid-cols-3 gap-2">
-                              <Input
-                                className="h-8 px-2 py-1 text-xs"
-                                value={rec?.stats?.plays ?? ''}
-                                onChange={(e) => onSaveStats(item.id, { plays: e.target.value })}
-                                placeholder="播放(选填)"
-                              />
-                              <Input
-                                className="h-8 px-2 py-1 text-xs"
-                                value={rec?.stats?.likes ?? ''}
-                                onChange={(e) => onSaveStats(item.id, { likes: e.target.value })}
-                                placeholder="点赞"
-                              />
-                              <Input
-                                className="h-8 px-2 py-1 text-xs"
-                                value={rec?.stats?.collects ?? ''}
-                                onChange={(e) => onSaveStats(item.id, { collects: e.target.value })}
-                                placeholder="收藏"
-                              />
-                            </div>
+                            <>
+                              <div className="mt-2 grid grid-cols-3 gap-2">
+                                <Input
+                                  className="h-8 px-2 py-1 text-xs"
+                                  value={rec?.stats?.plays ?? ''}
+                                  onChange={(e) => onSaveStats(item.id, { plays: e.target.value })}
+                                  placeholder="播放(选填)"
+                                />
+                                <Input
+                                  className="h-8 px-2 py-1 text-xs"
+                                  value={rec?.stats?.likes ?? ''}
+                                  onChange={(e) => onSaveStats(item.id, { likes: e.target.value })}
+                                  placeholder="点赞"
+                                />
+                                <Input
+                                  className="h-8 px-2 py-1 text-xs"
+                                  value={rec?.stats?.collects ?? ''}
+                                  onChange={(e) => onSaveStats(item.id, { collects: e.target.value })}
+                                  placeholder="收藏"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setReflecting(item)}
+                                className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-brand-600 transition-colors hover:text-brand-700"
+                              >
+                                <FlaskConical className="h-3.5 w-3.5" />
+                                数据不理想?花 30 秒复盘三问
+                              </button>
+                            </>
                           )}
                         </div>
                         <button
@@ -282,6 +318,63 @@ export function CheckinCard({
           打卡数据只存本机;播放/赞藏填个大概就行,复盘看的是趋势,不是比大小。
         </p>
       </div>
+
+      {/* 复盘三问:把失败翻译成下一个实验 */}
+      <Dialog open={reflecting !== null} onClose={() => setReflecting(null)} title="复盘三问" subtitle="30 秒,把「我不行」翻译成「下一个变量」">
+        {reflecting && (
+          <div className="space-y-4 text-[13px] leading-relaxed text-stone-600">
+            <p className="rounded-xl bg-amber-50/70 px-3.5 py-2.5 text-xs text-amber-700">
+              先说结论:这一条不是失败,是一份数据。重启期前几篇播放几十到几千都属常见区间,别跟别人的爆款比,以你自己的第一条为基准线。
+            </p>
+            {(
+              [
+                ['q1', '前 3 秒,别人会留下来吗?', ['大概率会', '多半划走了', '没数据/说不准']],
+                ['q2', '选题是大众痛点,还是偏自嗨?', ['大众痛点', '偏自嗨', '说不准']],
+                ['q3', '形式是平台当下喜欢的吗?', ['图文/视频选对了', '形式可能不合适', '说不准']],
+              ] as const
+            ).map(([key, question, options]) => (
+              <div key={key}>
+                <p className="font-medium text-stone-700">{question}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {options.map((o) => (
+                    <Chip key={o} active={ans[key] === o} onClick={() => setAns((a) => ({ ...a, [key]: o }))}>
+                      {o}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {(ans.q1 || ans.q2 || ans.q3) && (
+              <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-4">
+                <p className="text-[13px] font-semibold text-stone-800">下一篇实验:只改一个变量</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-stone-600">{experimentText(ans)}</p>
+                <p className="mt-1.5 text-[11px] text-stone-400">其他所有东西都不变——一次只改一个,才知道是哪个在起作用。</p>
+                <Button
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => {
+                    onAdd(`实验:${experimentText(ans).slice(0, 30)}`)
+                    setReflecting(null)
+                    setAns({ q1: '', q2: '', q3: '' })
+                    toast('success', '已加入打卡清单,下一篇就按这个来')
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  把这条实验加进清单
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </Card>
   )
+}
+
+/** 根据三问回答,给出"只改一个变量"的具体实验(纯本地规则,不调用 AI) */
+function experimentText(ans: { q1: string; q2: string; q3: string }): string {
+  if (ans.q1 === '多半划走了') return '只换开头钩子:第一句直接给结论或利益点,删掉所有铺垫,正文其他部分保持不变。'
+  if (ans.q2 === '偏自嗨') return '只换选题角度:领域不变,挑一个大众都会遇到的痛点问题来写,形式复制这一篇。'
+  if (ans.q3 === '形式可能不合适') return '只换形式:图文换短视频(或反过来),内容框架照搬这一篇。'
+  return '只换封面和标题:数字式或悬念式二选一重写,正文一个字不动。'
 }

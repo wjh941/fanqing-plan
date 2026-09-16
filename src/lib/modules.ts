@@ -116,6 +116,7 @@ function toCheckItem(u: unknown): CheckItem | null {
     title,
     kind: typeof o.kind === 'string' && o.kind.includes('测试') ? '测试内容' : '巩固标签内容',
     difficulty: typeof o.difficulty === 'string' && o.difficulty.trim() ? o.difficulty.trim() : '中',
+    detail: typeof o.detail === 'string' && o.detail.trim() ? o.detail.trim().slice(0, 90) : undefined,
   }
 }
 

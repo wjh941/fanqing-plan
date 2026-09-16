@@ -458,11 +458,11 @@ function Shell() {
               <Card className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 p-4 print-plain">
                 <p className="text-[13px] font-semibold text-stone-700">🌱 你的返青足迹</p>
                 <p className="text-xs text-stone-500">
-                  累计完成 <strong className="text-brand-600">{journey.totalDone}</strong> 个重启动作
-                  {journey.streak > 0 && (
+                  累计完成 <strong className="text-brand-600">{journey.totalDone}</strong> 个重启动作(只累计,不清零)
+                  {journey.monthDone > 0 && (
                     <>
                       {' '}
-                      · 连续 <strong className="text-brand-600">{journey.streak}</strong> 天
+                      · 本月已完成 <strong className="text-brand-600">{journey.monthDone}</strong> 次
                     </>
                   )}
                 </p>
@@ -475,7 +475,7 @@ function Shell() {
                     <p className="text-[15px] font-bold text-stone-900">🎉 重启完成 · 你已返青 {journey.dayN} 天</p>
                     <p className="mt-1 text-xs leading-relaxed text-stone-500">
                       自 {fmtDateCNms(journey.firstPost.publishedAt)} 发出第一篇起,累计完成 {journey.totalDone} 个重启动作
-                      {journey.streak > 0 ? ` · 连续 ${journey.streak} 天` : ''}。这个账号已经不是一个断更的账号了。
+                      {journey.monthDone > 0 ? ` · 本月 ${journey.monthDone} 次` : ''}。这个账号已经不是一个断更的账号了。
                     </p>
                   </div>
                   <Button

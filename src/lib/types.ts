@@ -51,6 +51,8 @@ export interface CheckItem {
   /** 测试内容 / 巩固标签内容 */
   kind: string
   difficulty: string
+  /** 具体怎么做:时间预算 + 完成标准(可选) */
+  detail?: string
 }
 
 /** 单条打卡的执行记录 */

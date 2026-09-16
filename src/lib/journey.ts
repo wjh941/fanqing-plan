@@ -52,9 +52,11 @@ export function fmtDateCNms(ms: number): string {
 }
 
 export interface JourneyStats {
-  /** 所有方案打卡累计完成数(含首发) */
+  /** 所有方案打卡累计完成数(含首发)——只累计,永不清零 */
   totalDone: number
-  /** 连续打卡天数(今天或昨天为终点向前数) */
+  /** 本月已完成次数(只累计,不清零;替代"连续打卡"的挫折感设计) */
+  monthDone: number
+  /** 连续打卡天数(保留计算,界面弱化展示) */
   streak: number
   /** 首发 data(无则 null) */
   firstPost: FirstPostData | null
@@ -92,7 +94,12 @@ export function journeyStats(): JourneyStats {
     streak += 1
     cursor -= DAY
   }
-  return { totalDone, streak, firstPost, dayN: firstPost ? dayNumber(firstPost.publishedAt) : null }
+  // 本月已完成:按自然月累计,只加不减
+  const now = new Date()
+  const monthStart = day0(new Date(now.getFullYear(), now.getMonth(), 1).getTime())
+  let monthDone = 0
+  for (const d of days) if (d >= monthStart) monthDone += 1
+  return { totalDone, monthDone, streak, firstPost, dayN: firstPost ? dayNumber(firstPost.publishedAt) : null }
 }
 
 /* ---------- 首发模式:退休文案与首发模板(纯本地,不调用 AI) ---------- */

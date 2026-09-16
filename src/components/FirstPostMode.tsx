@@ -58,6 +58,10 @@ export function FirstPostMode({
               <br />
               <span className="text-[13px] text-stone-500">不保证流量,只保证你不再是一个断更的人。</span>
             </p>
+            <p className="rounded-xl bg-amber-50/70 px-4 py-3 text-xs leading-relaxed text-amber-700">
+              先把话说在前面:断更后的前 3 篇笔记,数据差是常态——平台在重新认识你,这是流程的一部分,不是你的能力判决。
+              前 3 篇别盯数据,发布满 24 小时再回来看;到时如果数据不理想,清单里有「复盘三问」帮你把失败翻译成下一个实验。
+            </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 className="flex-1"
