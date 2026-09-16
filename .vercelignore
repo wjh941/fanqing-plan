@@ -1,0 +1,6 @@
+# 绝不把本地密钥文件与本地配置上传到 Vercel
+.env.local
+.env*.local
+.vercel
+node_modules
+dist
