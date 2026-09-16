@@ -6,6 +6,8 @@ import {
   ArrowUp,
   BadgeCheck,
   CalendarRange,
+  CircleDollarSign,
+  FileText,
   CheckCircle2,
   Copy,
   Download,
@@ -35,6 +37,7 @@ const moduleIcons: Record<number, typeof Stethoscope> = {
   3: PenTool,
   4: CalendarRange,
   5: Gauge,
+  6: CircleDollarSign,
 }
 
 const REFINE_PRESETS = [
@@ -378,7 +381,8 @@ export function ReportView({
           )
         }
 
-        const Icon = moduleIcons[item.meta.n]
+        // 防御:未知模块号(未来扩展)时回退到通用图标,避免 <undefined/> 白屏
+        const Icon = moduleIcons[item.meta.n] ?? FileText
         const showSkeletonBody = item.live && item.content.length < 40
         return (
           <motion.div
