@@ -2,7 +2,9 @@
 
 > 冬天的麦苗会枯黄,但根还活着——开春,就返青了。
 
-**线上地址:https://fanqing-plan.vercel.app** · 填自己的 AI Key 即可使用,数据只存浏览器本地
+**线上地址:https://fanqing-plan.vercel.app** · 备用线路(GitHub Pages):https://wjh941.github.io/fanqing-plan/ · 填自己的 AI Key 即可使用,数据只存浏览器本地
+
+> 部署说明:GitHub Pages 构建需带 `GITHUB_PAGES=1` 环境变量(切换相对路径 base),见 `.github/workflows/deploy-pages.yml`;改动后可用 `node scripts/smoke.mjs` 对生产包做运行时冒烟测试。
 
 面向「断更后想重启」的小红书 / 抖音个人博主的网页工具:填写账号赛道人设、断更时长、历史作品数据,AI 按以下 5 个模块生成一份完整、低压力的重启方案:
 
