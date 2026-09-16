@@ -17,6 +17,26 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // 兼容性兜底:任何加载/运行错误直接显示在屏幕上,方便老设备排查
+      window.addEventListener(
+        'error',
+        function (e) {
+          var el = document.getElementById('boot-error')
+          if (!el) {
+            el = document.createElement('div')
+            el.id = 'boot-error'
+            el.style.cssText =
+              'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#fee2e2;color:#991b1b;font:12px/1.6 sans-serif;padding:8px 10px;white-space:pre-wrap;word-break:break-all'
+            if (document.body) document.body.appendChild(el)
+          }
+          var src = e.target && (e.target.src || e.target.href)
+          el.textContent =
+            '加载出错,请截图发给开发者:' + (e.message || src || 'unknown')
+        },
+        true,
+      )
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
