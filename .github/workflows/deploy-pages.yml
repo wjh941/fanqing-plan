@@ -1,4 +1,4 @@
-name: Deploy GitHub Pages
+﻿name: Deploy GitHub Pages
 
 on:
   push:
@@ -20,6 +20,7 @@ jobs:
     env:
       GITHUB_PAGES: '1'
       VITE_MANAGED_API_BASE: 'https://fanqing-plan.vercel.app'
+      PAGES_DEBUG: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,3 +42,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+

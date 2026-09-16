@@ -48,6 +48,19 @@
             new Date().toLocaleTimeString()
         }
         window.__showBootError = show
+        // 捕获 React 等库的 console.error(内含组件名提示),供红条展示
+        var lastCE = ''
+        var origCE = console.error
+        console.error = function () {
+          try {
+            lastCE = Array.prototype.map
+              .call(arguments, function (a) {
+                return typeof a === 'string' ? a : String(a && a.message ? a.message : a)
+              })
+              .join(' ')
+          } catch (e3) {}
+          return origCE.apply(console, arguments)
+        }
         window.addEventListener(
           'error',
           function (e) {
@@ -55,7 +68,7 @@
             if (t && t !== window && (t.src || t.href)) {
               show('资源加载失败:' + (t.src || t.href))
             } else {
-              show((e.message || 'unknown') + (e.lineno ? ' @L' + e.lineno : ''))
+              show((e.message || 'unknown') + (e.lineno ? ' @L' + e.lineno : '') + (lastCE ? '\n细节:' + lastCE.slice(0, 600) : ''))
             }
           },
           true,

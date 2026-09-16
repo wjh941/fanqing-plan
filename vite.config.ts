@@ -12,6 +12,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     target: 'es2017',
+    // PAGES_DEBUG=1 时输出非压缩包,用于老设备白屏诊断(React 完整错误含组件名)
+    minify: process.env.PAGES_DEBUG === '1' ? false : 'esbuild',
   },
   server: {
     host: true,
