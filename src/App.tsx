@@ -519,72 +519,6 @@ function Shell() {
               </div>
             </Card>
 
-            {/* 价值对比:诚实回答「为什么不用自己问 AI」 */}
-            <section className="pb-2">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Card className="p-4 print-plain">
-                  <p className="text-[13px] font-semibold text-stone-500">直接问通用 AI</p>
-                  <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-stone-400">
-                    <li>· 你得自己想问什么、准备什么背景资料</li>
-                    <li>· 容易得到「正确的废话」,越看越焦虑</li>
-                    <li>· 聊完就散,报告之后没有然后</li>
-                  </ul>
-                </Card>
-                <Card className="border-brand-100 bg-brand-50/40 p-4 print-plain">
-                  <p className="text-[13px] font-semibold text-brand-700">用「返青计划」</p>
-                  <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-stone-600">
-                    <li>· 问题已替你问对:5 大模块 + 防跑偏规则内置</li>
-                    <li>· 每条结论锚定你自己的历史爆款,不空谈</li>
-                    <li>· 报告之后还有打卡清单,陪你走完 4 周</li>
-                  </ul>
-                </Card>
-              </div>
-              <p className="mt-3 text-center text-[11px] leading-relaxed text-stone-400">
-                你当然可以自己写提示词问 AI——我们只是把这条路上踩过的坑,都提前替你铺好了。
-              </p>
-            </section>
-
-            {/* 真实感示例场景 + 适合谁/不适合谁 */}
-            <section className="grid gap-3 pb-2 sm:grid-cols-2">
-              <Card className="p-4 print-plain">
-                <Badge tone="brand" className="mb-2">
-                  示例场景
-                </Badge>
-                <p className="text-[13px] leading-relaxed text-stone-600">
-                  一个<strong>断更 5 个月</strong>的家居博主,过去最稳的是出租屋改造。
-                  返青计划诊断出「前后对比 + 真实踩坑」仍是她的有效标签——
-                  第一周不硬拍新素材,而是<strong>复用旧内容做回访测评</strong>,第二周才逐步恢复节奏。
-                </p>
-                <button
-                  type="button"
-                  onClick={handleDemo}
-                  className="mt-2 text-xs font-medium text-brand-600 hover:underline"
-                >
-                  看这份完整示例方案 →
-                </button>
-              </Card>
-              <Card className="p-4 print-plain">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div>
-                    <p className="text-[13px] font-semibold text-emerald-700">适合你,如果</p>
-                    <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-stone-500">
-                      <li>· 断更 1 个月以上想重启</li>
-                      <li>· 有至少 3 条历史作品</li>
-                      <li>· 想低成本慢慢恢复,不追爆</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-stone-500">可能不适合,如果</p>
-                    <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-stone-400">
-                      <li>· 追求速涨粉 / 快速带货</li>
-                      <li>· 全新账号没有任何作品</li>
-                      <li>· 期望保证流量效果(我们不会)</li>
-                    </ul>
-                  </div>
-                </div>
-              </Card>
-            </section>
-
             <AccountForm
               initial={form}
               generating={streaming}
@@ -595,6 +529,79 @@ function Shell() {
               onDemo={handleDemo}
               onOpenSettings={() => setSettingsOpen(true)}
             />
+
+            {/* 了解更多:默认收起,不与表单抢首屏 */}
+            <details className="group mt-2 rounded-2xl border border-stone-200/80 bg-white/70 open:bg-white">
+              <summary className="flex cursor-pointer select-none items-center justify-between px-5 py-3.5 text-[13px] font-medium text-stone-500 transition-colors hover:text-stone-700 [&::-webkit-details-marker]:hidden">
+                想了解更多?(为什么不用通用 AI · 示例场景 · 适合谁)
+                <span className="text-stone-300 transition-transform group-open:rotate-180">▾</span>
+              </summary>
+              <div className="space-y-3 border-t border-stone-100 px-4 py-4 sm:px-5">
+                {/* 价值对比:诚实回答「为什么不用自己问 AI」 */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Card className="p-4 print-plain">
+                    <p className="text-[13px] font-semibold text-stone-500">直接问通用 AI</p>
+                    <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-stone-400">
+                      <li>· 你得自己想问什么、准备什么背景资料</li>
+                      <li>· 容易得到「正确的废话」,越看越焦虑</li>
+                      <li>· 聊完就散,报告之后没有然后</li>
+                    </ul>
+                  </Card>
+                  <Card className="border-brand-100 bg-brand-50/40 p-4 print-plain">
+                    <p className="text-[13px] font-semibold text-brand-700">用「返青计划」</p>
+                    <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-stone-600">
+                      <li>· 问题已替你问对:5 大模块 + 防跑偏规则内置</li>
+                      <li>· 每条结论锚定你自己的历史爆款,不空谈</li>
+                      <li>· 报告之后还有打卡清单,陪你走完 4 周</li>
+                    </ul>
+                  </Card>
+                </div>
+                <p className="text-center text-[11px] leading-relaxed text-stone-400">
+                  你当然可以自己写提示词问 AI——我们只是把这条路上踩过的坑,都提前替你铺好了。
+                </p>
+
+                {/* 真实感示例场景 + 适合谁/不适合谁 */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Card className="p-4 print-plain">
+                    <Badge tone="brand" className="mb-2">
+                      示例场景
+                    </Badge>
+                    <p className="text-[13px] leading-relaxed text-stone-600">
+                      一个<strong>断更 5 个月</strong>的家居博主,过去最稳的是出租屋改造。
+                      返青计划诊断出「前后对比 + 真实踩坑」仍是她的有效标签——
+                      第一周不硬拍新素材,而是<strong>复用旧内容做回访测评</strong>,第二周才逐步恢复节奏。
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleDemo}
+                      className="mt-2 text-xs font-medium text-brand-600 hover:underline"
+                    >
+                      看这份完整示例方案 →
+                    </button>
+                  </Card>
+                  <Card className="p-4 print-plain">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[13px] font-semibold text-emerald-700">适合你,如果</p>
+                        <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-stone-500">
+                          <li>· 断更 1 个月以上想重启</li>
+                          <li>· 有至少 3 条历史作品</li>
+                          <li>· 想低成本慢慢恢复,不追爆</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold text-stone-500">可能不适合,如果</p>
+                        <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-stone-400">
+                          <li>· 追求速涨粉 / 快速带货</li>
+                          <li>· 全新账号没有任何作品</li>
+                          <li>· 期望保证流量效果(我们不会)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            </details>
           </>
         ) : (
           <div className="pt-5 sm:pt-8">

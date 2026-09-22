@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -76,6 +76,34 @@ function TocRow({
       />
       <span className="truncate">{label}</span>
     </button>
+  )
+}
+
+/** 返回顶部悬浮钮:滚动超过一屏后出现(长报告导航补全) */
+function BackToTop() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 700)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.button
+          type="button"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="返回顶部"
+          className="no-print fixed bottom-5 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white/95 text-stone-500 shadow-[var(--shadow-pop)] backdrop-blur transition-colors hover:text-brand-600 sm:right-6"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </motion.button>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -563,6 +591,7 @@ export function ReportView({
           </div>
         </div>
       </Dialog>
+      <BackToTop />
     </div>
   )
 }

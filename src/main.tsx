@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { MotionConfig } from 'framer-motion'
 import App from './App'
 import { ToastProvider } from './components/ui'
 import './index.css'
@@ -19,8 +20,11 @@ ReactDOM.createRoot(document.getElementById('root')!, {
   },
 }).render(
   <React.StrictMode>
-    <ToastProvider>
-      <App />
-    </ToastProvider>
+    {/* 尊重系统"减弱动态效果"设置:动效对晕动症用户自动降级 */}
+    <MotionConfig reducedMotion="user">
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </MotionConfig>
   </React.StrictMode>,
 )
