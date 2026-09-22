@@ -14,10 +14,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: 类型检查(strict)
-        run: npx tsc --noEmit
       - name: 安装依赖
         run: npm ci
+      - name: 类型检查(strict)
+        run: npx tsc --noEmit
       - name: 构建
         run: npm run build
       - name: 安装 Playwright 浏览器
