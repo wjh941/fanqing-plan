@@ -84,6 +84,26 @@ body {
   font-weight: 500;
 }
 
+/* 移动端舒心细节 */
+@media (max-width: 639px) {
+  /* iOS Safari:输入框字号 <16px 时聚焦会强制放大页面,统一提到 16px */
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  /* 正文阅读行长与字号微调 */
+  .markdown-body {
+    font-size: 15px;
+    line-height: 1.8;
+  }
+}
+
+/* 底部安全区(全面屏手势条)不挡住页脚 */
+footer {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
 /* 打印/存 PDF:隐藏界面控件,只留方案本体 */
 @media print {
   .no-print {
