@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",`n    "e2e": "playwright test"
+    "preview": "vite preview",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "clsx": "^2.1.1",
