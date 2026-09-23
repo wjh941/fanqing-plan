@@ -1,5 +1,7 @@
 # 返青计划 · 断更账号重启与陪伴工具
 
+[![E2E](https://github.com/wjh941/fanqing-plan/actions/workflows/e2e.yml/badge.svg)](https://github.com/wjh941/fanqing-plan/actions/workflows/e2e.yml) [![Deploy GitHub Pages](https://github.com/wjh941/fanqing-plan/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/wjh941/fanqing-plan/actions/workflows/deploy-pages.yml) [![React](https://img.shields.io/badge/React-19-087EA4?logo=react&logoColor=white)](https://react.dev) [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/TypeScript-5.7_strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+
 > 冬天的麦苗会枯黄,但根还活着——开春,就返青了。
 > **不保证流量,只保证你不再是一个断更的人。**
 
@@ -94,6 +96,63 @@ flowchart LR
 | **SEO 与分享** | robots.txt / sitemap.xml / OG 与 Twitter 分享卡 + 1200×630 分享图,微信/群聊转发出正式卡片 |
 | **PWA** | 可添加到手机主屏,像 App 一样打开 |
 
+## 内部逻辑
+
+### 目录结构
+
+```text
+api/generate.ts               # Vercel Edge Function 生成代理:服务端读 RELAY_* Key,三层限流 + 请求体校验 + 流式转发
+.github/workflows/            # e2e.yml CI(strict 类型检查 → 构建 → Playwright E2E)· deploy-pages.yml 构建部署 GitHub Pages
+scripts/smoke.mjs             # 生产包冒烟测试:jsdom 挂载 dist 产物,捕获 React 渲染错误
+src/
+  App.tsx                     # 状态编排:生成 / 停止 / 微调 / 历史
+  lib/
+    types.ts                  # 类型与模块元数据
+    prompt.ts                 # 系统提示词(5 模块规则 + 硬性禁止)+ 消息构建
+    ai.ts                     # OpenAI 兼容流式客户端(SSE 解析、错误映射、测试连接)
+    modules.ts                # AI 输出解析:模块切分 / 抽取排期 / 替换单模块
+    parser.ts / vision.ts / speech.ts   # 历史作品智能粘贴解析 / 截图识别导入 / 语音识别封装
+    storage.ts                # localStorage:配置 / 草稿 / 历史方案 / 打卡
+    journey.ts                # 陪跑数据层:首发记录、累计完成、返青第 N 天
+    ics.ts / backup.ts        # 排期落日期导出 .ics 日历 / 全量备份恢复 JSON(不含 Key)
+    niches.ts                 # 常见赛道模板库,一键填入
+    export.ts                 # Markdown 导出与剪贴板
+    demo.ts                   # 演示数据(内置完整示例方案)
+  components/
+    ui.tsx                    # 基础组件(Button/Card/Dialog/Toast/Markdown…)
+    AccountForm.tsx           # 三步向导 + 智能粘贴
+    ReportView.tsx            # 流式报告 + 复制/导出 + 微调
+    FirstPostMode.tsx         # 首发模式:不走 AI,三步发出第一篇
+    CheckinCard.tsx           # 打卡清单 + 复盘三问(纯本地规则)
+    HistoryDrawer.tsx         # 历史方案回看 / 继续打卡 / 删除
+    SettingsDialog.tsx        # 生成方式设置(托管 / 自定义接口)
+    InfoDialogs.tsx           # 首次访问引导 + 隐私与免责说明
+    MicButton.tsx / ResumeBanner.tsx    # 语音输入按钮 / 回访唤醒横幅
+```
+
+### 生成数据流
+
+```mermaid
+flowchart LR
+  F["AccountForm<br/>表单 / 粘贴 / 截图 / 语音录入"] --> P["prompt.ts<br/>buildMessages 组装消息,约定输出模块1~5"]
+  P --> A["ai.ts streamChat<br/>SSE 流式客户端"]
+  A -->|托管模式| G["api/generate.ts<br/>Edge 代理:三层限流 + 请求体校验"]
+  A -->|自定义模式| U["OpenAI 兼容接口<br/>浏览器直连"]
+  G -->|Bearer RELAY_API_KEY 转发| U
+  A -->|delta 增量| M["modules.ts<br/>splitReport 正则切分模块1~5"]
+  M -->|逐模块渲染| R["ReportView<br/>流式报告 / replaceModule 单模块微调"]
+  M -->|schedule-json 排期数据块| K["CheckinCard + ics.ts<br/>打卡清单与 .ics 日历"]
+  R -->|生成完成| S["storage.ts<br/>rp.plans.v1 本地存档"]
+```
+
+### 关键机制
+
+- **AI 调用统一走 `src/lib/ai.ts` 的 `streamChat`(SSE 流式)**:托管模式 POST 到同源(或 `VITE_MANAGED_API_BASE` 指向的)`/api/generate` Edge Function,Key 只存服务端环境变量 `RELAY_BASE_URL` / `RELAY_API_KEY` / `RELAY_MODEL`(`api/generate.ts`);自定义模式浏览器直连用户填的 OpenAI 兼容接口,`.env.local` 的 `VITE_AI_BASE_URL` / `VITE_AI_API_KEY` / `VITE_AI_MODEL` 只作为本地默认值注入(`src/lib/storage.ts` 的 `DEFAULT_CONFIG`)。
+- **失败与降级**:用户停止或流中断时 `streamChat` 返回已收到的部分、不抛错;401/402/422/429 由 `friendlyError` 映射成人话提示;代理内置三层内存限流(每 IP 每日 12 次 / 每小时突发 5 次 / 全站每日 300 次,`overLimit`),超限返回 429 并引导切换自定义接口。
+- **生成结果只落浏览器 localStorage**:配置 `rp.aiConfig.v1` / 草稿 `rp.draft.v1` / 历史方案 `rp.plans.v1`(上限 30 份)/ 打卡 `rp.checklist.v1`(`src/lib/storage.ts`),陪跑足迹另存 `rp.firstPost.v1`(`src/lib/journey.ts`);备份导出的 JSON 只打包 plans/checklist/draft 三个键、刻意不含 Key(`src/lib/backup.ts`)。
+- **AI 输出是约定格式的 markdown,靠正则解析**:`prompt.ts` 的 `SYSTEM_PROMPT` 强制 `### 模块N:` 标题与 `schedule-json` 围栏排期数据块,`modules.ts` 据此切分模块 1~5(可选 6)、把排期 JSON 转成打卡清单,并支持 `replaceModule` 只重写单个模块。
+- **质量门**:推送 main 触发两条 workflow——`e2e.yml`(strict 类型检查 → 构建 → Playwright E2E)与 `deploy-pages.yml`(注入 `VITE_MANAGED_API_BASE` 构建 GitHub Pages);改动后可 `node scripts/smoke.mjs` 在 jsdom 里挂载 dist 做运行时冒烟。
+
 ## 快速开始
 
 1. 克隆仓库并安装依赖:
@@ -144,25 +203,3 @@ npm run preview # 本地预览构建产物
 ## 技术栈
 
 React 19 · Vite 6 · TypeScript · Tailwind CSS v4(@tailwindcss/typography)· framer-motion · lucide-react · react-markdown + remark-gfm
-
-## 目录结构
-
-```
-src/
-  lib/
-    types.ts     # 类型与模块元数据
-    prompt.ts    # 系统提示词(5 模块规则 + 硬性禁止)+ 消息构建
-    ai.ts        # OpenAI 兼容流式客户端(SSE 解析、错误映射、测试连接)
-    modules.ts   # AI 输出解析:模块切分 / 替换单模块
-    parser.ts    # 历史作品智能粘贴解析
-    storage.ts   # localStorage:配置 / 草稿 / 历史方案
-    export.ts    # Markdown 导出与剪贴板
-    demo.ts      # 演示数据(内置完整示例方案)
-  components/
-    ui.tsx           # 基础组件(Button/Card/Dialog/Toast/Markdown…)
-    AccountForm.tsx  # 三步向导 + 智能粘贴
-    ReportView.tsx   # 流式报告 + 复制/导出 + 微调
-    SettingsDialog.tsx
-    HistoryDrawer.tsx
-  App.tsx       # 状态编排:生成 / 停止 / 微调 / 历史
-```
