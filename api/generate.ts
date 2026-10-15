@@ -4,6 +4,11 @@
  * 用户浏览器 → 本函数 → AI 中转接口。
  * API Key 只存在于服务端环境变量(RELAY_*),永远不会进入前端产物。
  *
+ * 防滥用边界:本代理只服务本产品前端——
+ * - system 提示词由服务端按 mode 注入(与 src/lib/prompt.ts 共享同一份),客户端传的 system 一律剔除,
+ *   防止第三方把这里当任意提示词的免费 LLM 网关;
+ * - CORS 收敛为部署域名白名单(JSON 请求会先被预检拦截,非白名单站点的 POST 根本发不出去)。
+ *
  * 内置防护:
  * - 每 IP 每日限流(内存计数,尽力而为;多实例间不共享)
  * - 请求体校验(role / content 白名单与长度上限)
@@ -11,14 +16,29 @@
  */
 export const config = { runtime: 'edge' }
 
+import { QUICK_SYSTEM_PROMPT, SYSTEM_PROMPT } from '../src/lib/prompt'
+
 const BASE = (process.env.RELAY_BASE_URL || '').trim()
 const KEY = (process.env.RELAY_API_KEY || '').trim()
 const MODEL = (process.env.RELAY_MODEL || 'deepseek-chat').trim()
 
-const CORS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const ALLOWED_ORIGINS = new Set([
+  'https://fanqing-plan.vercel.app',
+  'https://wjh941.github.io',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+])
+
+/** 白名单内回显 Origin,否则不给 CORS 头(浏览器预检即失败) */
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin')
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  }
+  if (origin && ALLOWED_ORIGINS.has(origin)) headers['Access-Control-Allow-Origin'] = origin
+  return headers
 }
 
 /** 限流(内存计数,尽力而为):每 IP 每日上限 + 每 IP 每小时突发上限 + 全站每日总额 */
@@ -63,26 +83,23 @@ function overLimit(ip: string): string | null {
   return null
 }
 
-function json(obj: unknown, status: number): Response {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
-  })
-}
-
 interface Msg {
   role: 'system' | 'user' | 'assistant'
   content: string | Array<Record<string, unknown>>
 }
 
-function validMessages(raw: unknown): Msg[] | null {
+/**
+ * 校验并剔除非 user/assistant 消息。system 一律不收:提示词由服务端按 mode 注入
+ * (共享 src/lib/prompt.ts,单一事实来源),堵住"任意 system 提示词的免费 LLM 网关"。
+ */
+function userMessages(raw: unknown): Msg[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > 10) return null
   const out: Msg[] = []
   for (const m of raw) {
     if (!m || typeof m !== 'object') return null
     const role = (m as { role?: unknown }).role
     const content = (m as { content?: unknown }).content
-    if (role !== 'system' && role !== 'user' && role !== 'assistant') return null
+    if (role !== 'user' && role !== 'assistant') return null
     if (typeof content === 'string') {
       if (content.length > 20000) return null
       out.push({ role, content })
@@ -99,10 +116,17 @@ function validMessages(raw: unknown): Msg[] | null {
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
+  const cors = corsFor(req)
+  const json = (obj: unknown, status: number): Response =>
+    new Response(JSON.stringify(obj), {
+      status,
+      headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' },
+    })
+
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
 
-  let body: { ping?: boolean; stream?: boolean; max_tokens?: number; messages?: unknown }
+  let body: { ping?: boolean; stream?: boolean; max_tokens?: number; mode?: unknown; messages?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -121,8 +145,11 @@ export default async function handler(req: Request): Promise<Response> {
   const limitMsg = overLimit(ip)
   if (limitMsg) return json({ error: limitMsg }, 429)
 
-  const messages = validMessages(body.messages)
-  if (!messages) return json({ error: 'messages 参数无效' }, 400)
+  const userMsgs = userMessages(body.messages)
+  if (!userMsgs) return json({ error: 'messages 参数无效' }, 400)
+  // 系统提示词服务端注入:quick 对应快速诊断,其余(完整方案/单模块重写)共用主提示词
+  const system = body.mode === 'quick' ? QUICK_SYSTEM_PROMPT : SYSTEM_PROMPT
+  const messages: Msg[] = [{ role: 'system', content: system }, ...userMsgs]
 
   const stream = body.stream !== false
   const maxTokens =
@@ -144,7 +171,7 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: `生成服务异常(${upstream.status}):${text.slice(0, 200) || '请稍后重试'}` }, 502)
   }
 
-  const headers = new Headers(CORS)
+  const headers = new Headers(cors)
   headers.set('Content-Type', upstream.headers.get('content-type') || (stream ? 'text/event-stream; charset=utf-8' : 'application/json; charset=utf-8'))
   headers.set('Cache-Control', 'no-cache')
   return new Response(upstream.body, { status: 200, headers })

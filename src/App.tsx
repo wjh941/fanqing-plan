@@ -172,7 +172,7 @@ function Shell() {
     try {
       const full = isDemo
         ? await streamDemoText(ac.signal, onDelta)
-        : await streamChat(config, buildMessages(f), onDelta, ac.signal)
+        : await streamChat(config, buildMessages(f), onDelta, ac.signal, 'plan')
 
       if (ac.signal.aborted) {
         toast('info', '已停止生成,已完成的部分保留')
@@ -220,7 +220,7 @@ function Shell() {
     const ac = new AbortController()
     abortRef.current = ac
     try {
-      const full = await streamChat(config, buildQuickMessages(f), (d) => setQuickText((r) => r + d), ac.signal)
+      const full = await streamChat(config, buildQuickMessages(f), (d) => setQuickText((r) => r + d), ac.signal, 'quick')
       if (!ac.signal.aborted && full.trim().length < 50) {
         setQuickText('AI 返回的内容过短,请稍后重试;或到「设置」里检查配置。')
       }
@@ -251,6 +251,7 @@ function Shell() {
         buildRefineMessages(currentForm, report, n, instruction),
         (d) => setRefining((r) => (r ? { ...r, buffer: r.buffer + d } : r)),
         ac.signal,
+        'plan',
       )
       if (!ac.signal.aborted && final.trim()) {
         const parsed = [...final.matchAll(/#{2,4}\s*模块\s*([1-6])/g)]

@@ -148,6 +148,7 @@ flowchart LR
 ### 关键机制
 
 - **AI 调用统一走 `src/lib/ai.ts` 的 `streamChat`(SSE 流式)**:托管模式 POST 到同源(或 `VITE_MANAGED_API_BASE` 指向的)`/api/generate` Edge Function,Key 只存服务端环境变量 `RELAY_BASE_URL` / `RELAY_API_KEY` / `RELAY_MODEL`(`api/generate.ts`);自定义模式浏览器直连用户填的 OpenAI 兼容接口,`.env.local` 的 `VITE_AI_BASE_URL` / `VITE_AI_API_KEY` / `VITE_AI_MODEL` 只作为本地默认值注入(`src/lib/storage.ts` 的 `DEFAULT_CONFIG`)。
+- **代理防滥用边界**:`/api/generate` 只服务本产品——system 提示词由服务端按 `mode`(plan/quick)注入并与前端共享 `src/lib/prompt.ts` 同一份,客户端传的 system 一律剔除(防止被当任意提示词的免费 LLM 网关);CORS 收敛为部署域名白名单(JSON 请求先过预检,非白名单站点的 POST 发不出去);限流仍为实例内存尽力而为。
 - **失败与降级**:用户停止或流中断时 `streamChat` 返回已收到的部分、不抛错;401/402/422/429 由 `friendlyError` 映射成人话提示;代理内置三层内存限流(每 IP 每日 12 次 / 每小时突发 5 次 / 全站每日 300 次,`overLimit`),超限返回 429 并引导切换自定义接口。
 - **生成结果只落浏览器 localStorage**:配置 `rp.aiConfig.v1` / 草稿 `rp.draft.v1` / 历史方案 `rp.plans.v1`(上限 30 份)/ 打卡 `rp.checklist.v1`(`src/lib/storage.ts`),陪跑足迹另存 `rp.firstPost.v1`(`src/lib/journey.ts`);备份导出的 JSON 只打包 plans/checklist/draft 三个键、刻意不含 Key(`src/lib/backup.ts`)。
 - **AI 输出是约定格式的 markdown,靠正则解析**:`prompt.ts` 的 `SYSTEM_PROMPT` 强制 `### 模块N:` 标题与 `schedule-json` 围栏排期数据块,`modules.ts` 据此切分模块 1~5(可选 6)、把排期 JSON 转成打卡清单,并支持 `replaceModule` 只重写单个模块。

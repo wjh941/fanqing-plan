@@ -66,6 +66,8 @@ export async function streamChat(
   messages: ChatMessage[],
   onDelta: (text: string) => void,
   signal?: AbortSignal,
+  /** 托管模式下告诉服务端注入哪份系统提示词(plan=完整方案/单模块重写,quick=快速诊断);自定义直连模式忽略 */
+  mode: 'plan' | 'quick' = 'plan',
 ): Promise<string> {
   let res: Response
   try {
@@ -77,6 +79,7 @@ export async function streamChat(
         messages,
         stream: true,
         temperature: 0.8,
+        mode,
       }),
       signal,
     })
