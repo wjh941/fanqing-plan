@@ -203,3 +203,5 @@ npm run preview # 本地预览构建产物
 ## 技术栈
 
 React 19 · Vite 6 · TypeScript · Tailwind CSS v4(@tailwindcss/typography)· framer-motion · lucide-react · react-markdown + remark-gfm
+
+**老设备兼容承诺**:构建目标 `es2017`(见 `vite.config.ts` 注释,曾为 iOS<15.4 / 旧微信 X5 内核专项排查 #130 白屏)。代码里禁止使用这些环境缺失的新 API——`structuredClone` 已封装为 `src/lib/utils.ts` 的 `deepClone`(JSON 序列化拷贝,表单类纯 JSON 数据足够);所有 localStorage 访问一律 try/catch(隐私模式兜底)。改代码时请维持这条底线。`api/` 目录已纳入 `tsc --noEmit` 类型检查,唯一的服务端代码与前端同一 strict 标准。
