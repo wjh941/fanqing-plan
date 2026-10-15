@@ -38,7 +38,7 @@ import type {
   CheckRecord,
   SavedPlan,
 } from './lib/types'
-import { uid } from './lib/utils'
+import { deepClone, uid } from './lib/utils'
 import { PrivacyDialog, WelcomeDialog } from './components/InfoDialogs'
 
 const HERO_POINTS = [
@@ -205,7 +205,7 @@ function Shell() {
     void runGeneration(f, false)
   }
 
-  const handleDemo = () => void runGeneration(structuredClone(DEMO_FORM), true)
+  const handleDemo = () => void runGeneration(deepClone(DEMO_FORM), true)
 
   /* ---------- 快速诊断:作品不足 3 条时的轻量出口 ---------- */
   const [quickOpen, setQuickOpen] = useState(false)
@@ -290,9 +290,13 @@ function Shell() {
     persistChecklist(savedId, checkItems, next)
     // 温和的备份提醒:完成第 2 个动作时提示一次(只提示一次,不追问)
     const doneCount = checkItems.filter((i) => next[i.id]?.done).length
-    if (doneCount >= 2 && !localStorage.getItem('rp.backupHint.v1')) {
-      localStorage.setItem('rp.backupHint.v1', String(Date.now()))
-      toast('info', '你已完成 2 个重启动作。建议到「历史方案」导出一份备份,换设备也不会丢。')
+    try {
+      if (doneCount >= 2 && !localStorage.getItem('rp.backupHint.v1')) {
+        localStorage.setItem('rp.backupHint.v1', String(Date.now()))
+        toast('info', '你已完成 2 个重启动作。建议到「历史方案」导出一份备份,换设备也不会丢。')
+      }
+    } catch {
+      // 隐私模式/存储被禁:提醒本身可放弃,不影响主流程
     }
   }
 

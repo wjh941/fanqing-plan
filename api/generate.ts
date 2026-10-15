@@ -110,7 +110,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   if (body.ping) {
-    return json({ ok: true, configured: Boolean(BASE && KEY) })
+    return json({ ok: true, configured: Boolean(BASE && KEY) }, 200)
   }
 
   if (!BASE || !KEY) {

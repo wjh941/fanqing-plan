@@ -40,3 +40,12 @@ export function parseCount(s: string): number | null {
   if (unit === 'k') return Math.round(n * 1000)
   return Math.round(n)
 }
+
+/**
+ * 深拷贝。structuredClone 在 iOS < 15.4 / 旧微信 X5 内核上不存在,
+ * 而本项目专门为这些老设备降级过构建目标(#130 白屏排查),演示入口是获客第一屏,不能在那里抛 ReferenceError。
+ * DEMO_FORM 等表单数据是纯 JSON 结构,JSON 序列化拷贝完全够用。
+ */
+export function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}

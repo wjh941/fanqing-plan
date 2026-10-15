@@ -18,7 +18,7 @@ import { DEMO_FORM } from '../lib/demo'
 import { NICHE_PRESETS } from '../lib/niches'
 import { GAP_OPTIONS, newWork } from '../lib/types'
 import type { AccountForm as AccountFormData, AIConfig, WorkItem } from '../lib/types'
-import { cn } from '../lib/utils'
+import { cn, deepClone } from '../lib/utils'
 import { Badge, Button, Card, Chip, Field, Input, Textarea, useToast } from './ui'
 import { MicButton } from './MicButton'
 
@@ -111,7 +111,7 @@ export function AccountForm({
   }
 
   function fillExample() {
-    setForm(structuredClone(DEMO_FORM))
+    setForm(deepClone(DEMO_FORM))
     setStepMsg(null)
     toast('info', '已填入示例账号,你可以随意修改或直接体验')
   }
