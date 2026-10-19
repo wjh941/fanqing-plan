@@ -1,5 +1,7 @@
 # 返青计划 · 断更账号重启与陪伴工具
 
+> **“冬天来了，春天还会远吗？”** —— 雪莱
+
 [![E2E](https://github.com/wjh941/fanqing-plan/actions/workflows/e2e.yml/badge.svg)](https://github.com/wjh941/fanqing-plan/actions/workflows/e2e.yml) [![Deploy GitHub Pages](https://github.com/wjh941/fanqing-plan/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/wjh941/fanqing-plan/actions/workflows/deploy-pages.yml) [![React](https://img.shields.io/badge/React-19-087EA4?logo=react&logoColor=white)](https://react.dev) [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/TypeScript-5.7_strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
 > 冬天的麦苗会枯黄,但根还活着——开春,就返青了。
