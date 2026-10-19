@@ -1,6 +1,6 @@
 # 返青计划 · 断更账号重启与陪伴工具
 
-> **“冬天来了，春天还会远吗？”** —— 雪莱
+> 🎬 **使用场景**：你是个断更半年的博主，想重新开始又不敢发——怕没数据、怕被嘲笑。返青计划基于你自己账号的历史数据生成低风险重启方案，还有"首发模式"三步陪你发出第一篇。
 
 [![E2E](https://github.com/wjh941/fanqing-plan/actions/workflows/e2e.yml/badge.svg)](https://github.com/wjh941/fanqing-plan/actions/workflows/e2e.yml) [![Deploy GitHub Pages](https://github.com/wjh941/fanqing-plan/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/wjh941/fanqing-plan/actions/workflows/deploy-pages.yml) [![React](https://img.shields.io/badge/React-19-087EA4?logo=react&logoColor=white)](https://react.dev) [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/TypeScript-5.7_strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
